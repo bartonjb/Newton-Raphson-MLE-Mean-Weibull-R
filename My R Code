@@ -1,0 +1,55 @@
+# Estimating the MLE of a Weibull Distribution
+# Using Newton-Raphson 
+
+x <- c(data$..1) # The dataset
+n <- length(x) # Sample data size
+
+# Below is the for loop used to get the m.l.e for beta
+for (i in 1:175) {
+  delta <- 1 # initial delta
+  b0 <- 0.1 # intial beta, per bain & engelhardt I set b0 to 0.1
+  tolerance <- 0.0000001 # the convergence criteria
+  while (delta > tolerance) { # while the delta is greater than the threshold, we'll keep iterating
+  b <- b0
+  b2 <- b + tolerance #b2 is b0 + the threshold
+  y <- sum(x^b * log(x)) # equations are from b&e 9.2.13
+  y1 <- sum(x^b)
+  y2 <- sum(log(x))/n
+  g1 <- 1/b -y/y1 + y2
+  y3 <- sum(x^b2 * log(x))
+  y4 <- sum(x^b2)
+  g2 <- 1/b2 -y3/y4 + y2
+  
+  d <- (g2 - g1)/tolerance # this is the derivative of g(b), (g(b + h) - g(b))/h
+  b0 <- b - g1/d # the newton-raphson equation
+  delta <- b0-b # the difference between our new beta and old one
+  } 
+  }
+
+t.hat <- (sum(x^b)/n)^(1/b) # Computes the m.l.e of theta
+b.hat <- b
+
+# Now let's estimate our standard errors
+y5 <- sum(x^b * (log(x))^2)
+
+# Computing the elements of the Hessian Matrix
+t <- t.hat
+d11 <- n * b/t^2 - b * (b+1) * t^(-b - 2) * y1 # partial derivative with respect to beta
+d12 <- -n/t + t^(-b - 1) * y1 - b * t^(-b - 1) * log(t) * y1 + b * t^(-b - 1) * y # partial of beta and theta
+d21 <- d12 # partial of beta and theta
+d22 <- -n/b^2 - t^(-b) * (log(t))^2 * y1 + 2 * t^(-b) * log(t) * y - t^(-b) * y5 # 2nd derivative of beta
+
+H <- matrix(c(d11,d12,d21,d22), nrow = 2) # Hessian Matrix
+I <- -H # Information matrix equals minus expectation of Hessian Matrix
+VarCov <- solve(I) # Inverse of the information matrix gives the covariance matrix
+vt.hat <- VarCov[1,1] # variance of theta.hat
+vb.hat <- VarCov[2,2] # variance of beta.hat
+SE <- sqrt(c(vt.hat, vb.hat)) # standard errors of the parameter estimates
+WeibullMLE <- c(t.hat, b.hat) # MLE of the Weibull parameters
+WeibullMLE # To view the MLEs
+SE # To view the SE
+
+beta_CI <- c(b + SE[2]*1.96,b - SE[2]*1.96) # calculating the 95% CI for beta
+beta_CI # to view beta's CI
+theta_CI <- c(t + SE[1]*1.96, t - SE[1]*1.96) # calculating the 95% CI for theta
+theta_CI # to view theta's CI
